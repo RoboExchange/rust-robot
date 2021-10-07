@@ -45,7 +45,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .service(signal_handler)
     })
-        .bind("0.0.0.0:8080")?
+        .bind("0.0.0.0:2525")?
         .run()
         .await
 }
