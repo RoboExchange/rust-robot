@@ -65,3 +65,11 @@ pub fn get_leverage() -> i32 {
     }
     return e.unwrap().parse::<i32>().unwrap();
 }
+
+pub fn is_test() -> bool {
+    let e = env::var("TEST_MODE");
+    if !env::var("TEST_MODE").is_ok() {
+        error!("TEST_MODE is empty");
+    }
+    return e.unwrap().parse::<bool>().unwrap();
+}

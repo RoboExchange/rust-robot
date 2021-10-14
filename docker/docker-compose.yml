@@ -18,4 +18,4 @@ robot:
         - TPP=0.6
         - CONCURRENT_POSITION=3
         - RUST_BACKTRACE=full
-
+        - TEST_MODE=true
