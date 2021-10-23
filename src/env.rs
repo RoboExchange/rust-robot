@@ -73,3 +73,28 @@ pub fn is_test() -> bool {
     }
     return e.unwrap().parse::<bool>().unwrap();
 }
+
+/* Kucoin ENV */
+pub fn kc_api_key() -> String {
+    let e = env::var("KC-API-KEY");
+    if !env::var("KC-API-KEY").is_ok() {
+        error!("KC-API-KEY is empty");
+    }
+    return e.unwrap();
+}
+
+pub fn kc_api_secret() -> String {
+    let e = env::var("KC-API-SECRET");
+    if !env::var("KC-API-SECRET").is_ok() {
+        error!("KC-API-SECRET is empty");
+    }
+    return e.unwrap();
+}
+
+pub fn kc_api_passphrase() -> String {
+    let e = env::var("KC-API-PASSPHRASE");
+    if !env::var("KC-API-PASSPHRASE").is_ok() {
+        error!("KC-API-PASSPHRASE is empty");
+    }
+    return e.unwrap();
+}

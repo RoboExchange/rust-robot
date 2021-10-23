@@ -494,6 +494,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "data-encoding"
+version = "2.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ee2393c4a91429dffb4bedf19f4d6abf27d8a732c8ce4980305d782e5426d57"
+
+[[package]]
 name = "derive_more"
 version = "0.99.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1570,8 +1576,12 @@ name = "rust-robot"
 version = "0.1.0"
 dependencies = [
  "actix-web",
+ "data-encoding",
+ "hex",
  "log",
  "reqwest",
+ "ring",
+ "rustc-serialize",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -1579,6 +1589,12 @@ dependencies = [
  "simplelog",
  "tokio 1.12.0",
 ]
+
+[[package]]
+name = "rustc-serialize"
+version = "0.3.24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dcf128d1287d2ea9d80910b5f1120d0b8eede3fbf1abe91c40d39ea7d51e6fda"
 
 [[package]]
 name = "rustc_version"

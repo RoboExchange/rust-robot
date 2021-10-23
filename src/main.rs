@@ -11,6 +11,7 @@ mod utils;
 mod coinex;
 mod robot;
 mod env;
+mod kucoin;
 
 #[derive(Deserialize)]
 pub struct Signal {
@@ -29,41 +30,42 @@ async fn signal_handler(signal: web::Query<Signal>) -> impl Responder {
         exchange = signal.exchange.as_ref().unwrap().to_string();
     };
 
-    let operation: String = signal.operation.parse().unwrap();
+    let mut operation: String = signal.operation.parse().unwrap();
     let symbol: String = signal.symbol.parse().unwrap();
 
     let sym_len = symbol.len();
     let perp_len = "PERP".len();
     let market: String = symbol.chars().skip(0).take(sym_len - perp_len).collect();
 
-    let mut side: i8 = 1;
-    if operation.eq("LONG") {
-        side = 2;
-    }
+    let msg = format!("Receive signal exchange:{} symbol:{} operation:{}", exchange, symbol, &operation);
+    info!("{}", msg);
 
     if !is_test() {
         thread::spawn(move || {
-            robot::execute(&market, &side);
+            robot::execute_coinex(&market, &operation);
         });
     }
 
-    let msg = format!("Receive signal exchange:{} symbol:{} operation:{}", exchange, symbol, operation);
-    info!("{}", msg);
     HttpResponse::Ok().body(msg)
 }
 
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
+// #[actix_web::main]
+fn main() {
     init();
     print_env();
 
-    HttpServer::new(|| {
+    let side = 1;
+    let price = 4004.0;
+
+    let result = kucoin::PositionRequest::new("XBTUSDM").send();
+
+    /*HttpServer::new(|| {
         App::new()
             .service(signal_handler)
     })
         .bind("0.0.0.0:2525")?
         .run()
-        .await
+        .await*/
 }
 
 fn print_env() {

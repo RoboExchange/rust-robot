@@ -5,8 +5,9 @@ use crate::coinex::{AdjustLeverage, PendingPositionRequest, PutLimitRequest, Tic
 use crate::coinex::{CloseLimitRequest, OrderStatusRequest};
 use crate::env::get_concurrent_position;
 
-pub fn execute(market: &str, side: &i8) {
-    info!("Execute Signal: market:{} side:{}", market, side);
+pub fn execute_coinex(market: &str, operation: &str) {
+
+    info!("Execute Signal: market:{} side:{}", market, operation);
     let mut pp_resp = PendingPositionRequest::new_with_market(Option::from(market)).send();
 
     match pp_resp {
@@ -24,7 +25,7 @@ pub fn execute(market: &str, side: &i8) {
                             info!("Leverage -> {} leverage:{} position_type:{}", &market, adj_lev_resp.data["leverage"].as_str().unwrap(), adj_lev_resp.data["position_type"]);
                             let ticker_resp = TickerRequest::new(&market).send().unwrap();
                             let last_price = &ticker_resp.data["ticker"]["last"].as_str().unwrap().parse::<f32>().unwrap();
-                            let put_limit_resp = PutLimitRequest::new(&market, &side, &last_price).send().unwrap();
+                            let put_limit_resp = PutLimitRequest::new(&market, &operation, &last_price).send().unwrap();
                             let order_id = put_limit_resp.data["order_id"].as_f64().unwrap();
                             if put_limit_resp.code.eq(&0) {
                                 let current_pos = PendingPositionRequest::new_with_market(Option::from(market)).send().unwrap();
@@ -36,7 +37,7 @@ pub fn execute(market: &str, side: &i8) {
                                 let price = order_status.data["price"].as_str().unwrap().parse::<f32>().unwrap();
                                 info!("Enter Position -> market:{} id:{} positionId:{} status:{} amount:{} price:{} {}/{}", &market, &order_id, &position_id, status, amount, price, arr_len + 1, concurrent_position);
 
-                                let take_profit_resp = CloseLimitRequest::new(&market, &side, &position_id, &last_price, &amount).send().unwrap();
+                                let take_profit_resp = CloseLimitRequest::new(&market, &operation, &position_id, &last_price, &amount).send().unwrap();
                                 if take_profit_resp.code.eq(&0) {
                                     info!("TakeProfit -> market:{} id:{} amount:{} price:{}", &market, &order_id, amount, price);
                                 } else {
