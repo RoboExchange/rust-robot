@@ -20,7 +20,7 @@ pub fn trade(symbol: String, side: OrderSide, price: f64, take_profit: f64, stop
         if isolated_changed && leverage_changed {
             let base = available_balance * leverage as f64 / price;
             let qty = format!("{:.4}", base).parse::<f64>().unwrap();
-            println!("Order size:{}", qty);
+            info!("Order size:{}", qty);
 
             let order = Order {
                 symbol: symbol.to_string(),
