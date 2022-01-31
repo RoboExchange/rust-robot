@@ -10,13 +10,13 @@ use ring::hmac;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::env::{get_initial_balance, get_leverage, get_tpp, kc_api_key, kc_api_passphrase, kc_api_secret};
+use crate::env::{initial_balance, leverage, tpp, kucoin_api_key, kucoin_api_passphrase, kucoin_api_secret};
 use crate::utils::{get_current_timestamp, get_target_price, validate_url};
 
 use self::reqwest::header::{CONTENT_TYPE, HeaderMap, HeaderValue};
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct PlaceLimitOrderRequest {
+pub struct OrderRequest {
     #[serde(rename = "symbol")]
     pub _symbol: String,
     #[serde(rename = "side")]
@@ -37,6 +37,14 @@ pub struct PositionRequest {
     pub _symbol: String,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ContractRequest {
+    #[serde(rename = "symbol")]
+    pub _symbol: String,
+}
+
+
+
 
 #[derive(Deserialize, Debug)]
 pub struct ApiResponse {
@@ -45,17 +53,17 @@ pub struct ApiResponse {
 }
 
 //------------- Put Limit Request -------------
-impl PlaceLimitOrderRequest {
+impl OrderRequest {
     #[allow(dead_code)]
     pub fn new(symbol: &str, operation: &str, price: &f32) -> Self {
-        let size = get_initial_balance() as f32 * get_leverage() as f32 / price;
-        let target_price = get_target_price(&operation, price, &get_tpp());
+        let size = initial_balance() as f32 * leverage() as f32 / price;
+        let target_price = get_target_price(&operation, price, &tpp());
         info!("PutLimit -> market:{}  side:{}  price:{}  amount:{}", &symbol, &operation, &price, &size);
-        PlaceLimitOrderRequest {
+        OrderRequest {
             _symbol: symbol.into(),
             _side: get_side(&operation),
             _type: String::from("limit"),
-            _leverage: get_leverage(),
+            _leverage: leverage(),
             _price: target_price,
             _size: size,
         }
@@ -67,10 +75,10 @@ impl PlaceLimitOrderRequest {
     }
 
     #[allow(dead_code)]
-    pub fn send(&self) -> Result<ApiResponse, u16> {
+    pub fn send(&self) {
         let target_path = String::from("api/v1/orders");
         let json = self.to_json();
-        return call_api(json, target_path, "POST");
+        call_api(json, target_path, "POST");
     }
 }
 
@@ -89,32 +97,36 @@ impl PositionRequest {
     }
 
     #[allow(dead_code)]
-    pub fn send(&self) -> Result<ApiResponse, u16> {
+    pub fn send(&self) {
         let target_path = String::from("api/v1/position");
         let query = self.get_url_encoded();
-        return call_api(query, target_path, "GET");
+        call_api(query, target_path, "GET");
     }
 }
 
-pub fn call_api(query: String, target_path: String, method: &str) -> Result<ApiResponse, u16> {
+pub fn call_api(query: String, target_path: String, method: &str) {
 
     //Initial data
-    let kc_api_passphrase = kc_api_passphrase();
+    let kc_api_passphrase = kucoin_api_passphrase();
     let timestamp = get_current_timestamp();
-    let kc_api_key = kc_api_key();
-    let kc_api_secret = kc_api_secret();
+    let kc_api_key = kucoin_api_key();
+    let kc_api_secret = kucoin_api_secret();
 
     // Create sign key
     let key = hmac::Key::new(hmac::HMAC_SHA256, kc_api_secret.as_bytes());
 
     // Sign query
-    let string_to_sign = format!("{}{}/{}?{}", &timestamp, &method, &target_path, &query);
+    let string_to_sign = if method == "GET" {
+        format!("{}{}/{}?{}", &timestamp, &method, &target_path, &query)
+    } else {
+        format!("{}{}/{}{}", &timestamp, &method, &target_path, &query)
+    };
     info!("Clear: {}", &string_to_sign);
     let query_sign = BASE64.encode(hmac::sign(&key, &string_to_sign.as_ref()).as_ref());
     info!("data sign: {}", query_sign);
 
 
-    let url = validate_url(target_path);
+    let url = validate_url(&target_path);
     info!("URL: {}", url);
 
     // Sign passphrase
@@ -140,28 +152,37 @@ pub fn call_api(query: String, target_path: String, method: &str) -> Result<ApiR
     // Send request
     let http_client = reqwest::blocking::Client::builder().use_rustls_tls().build().unwrap();
 
-    return if method == "POST" {
-        let resp = http_client.post(&url)
-            .headers(headers)
-            .body(query)
-            .send();
-        if resp.is_ok() {
-            Ok(resp.unwrap().json().unwrap())
-        } else {
-            Err(resp.unwrap().status().as_u16())
-        }
-    } else {
-        let url = format!("{}?{}", url, query);
-        let resp = http_client.get(url)
-            .headers(headers)
-            .send();
+    let resp = http_client.post(&url)
+        .headers(headers)
+        .body(query)
+        .send()
+        .unwrap();
 
-        if resp.is_ok() {
-            Ok(resp.unwrap().json().unwrap())
-        } else {
-            Err(resp.unwrap().status().as_u16())
-        }
-    };
+    println!("{}", resp.text().unwrap());
+
+
+    // return if method == "POST" {
+    //     let resp = http_client.post(&url)
+    //         .headers(headers)
+    //         .body(query)
+    //         .send();
+    //     if resp.is_ok() {
+    //         Ok(resp.unwrap().json().unwrap())
+    //     } else {
+    //         Err(resp.unwrap().status().as_u16())
+    //     }
+    // } else {
+    //     let url = format!("{}?{}", url, query);
+    //     let resp = http_client.get(url)
+    //         .headers(headers)
+    //         .send();
+    //
+    //     if resp.is_ok() {
+    //         Ok(resp.unwrap().json().unwrap())
+    //     } else {
+    //         Err(resp.unwrap().status().as_u16())
+    //     }
+    // };
 }
 
 fn get_side(operation: &str) -> String {

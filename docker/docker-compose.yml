@@ -1,21 +1,23 @@
-robot:
+version: "3.3"
+services:
+  robot:
     image: mah454/rust-robot:latest
     container_name: r1
     restart: always
     hostname: r1
     domainname: roboexchange.ir
-    dns: 
-        - 8.8.8.8
-        - 4.2.2.2
+    dns:
+      - 8.8.8.8
+      - 4.2.2.2
     environment:
-        - BASE_URL=https://api.coinex.com/perpetual/v1/
-          # - BASE_URL=https://104.18.30.180/perpetual/v1/
-        - ACCESS_ID=181D8CB0E2EC4AB68FE3F59718AFAA5C
-        - SECRET_KEY=B370B316DF89FF033DE07BF6E7ED966CFD13DBAFDF6E493D
-        - POSITION_TYPE=1
-        - INITIAL_BALANCE=10
-        - LEVERAGE=3
-        - TPP=0.6
-        - CONCURRENT_POSITION=3
-        - RUST_BACKTRACE=full
-        - TEST_MODE=true
+      - BASE_URL=https://api.coinex.com/perpetual/v1/
+      # - BASE_URL=https://104.18.30.180/perpetual/v1/
+      - ACCESS_ID=181D8CB0E2EC4AB68FE3F59718AFAA5C
+      - SECRET_KEY=B370B316DF89FF033DE07BF6E7ED966CFD13DBAFDF6E493D
+      - POSITION_TYPE=1
+      - INITIAL_BALANCE=10
+      - LEVERAGE=3
+      - TPP=0.6
+      - CONCURRENT_POSITION=3
+      - RUST_BACKTRACE=full
+      - TEST_MODE=true

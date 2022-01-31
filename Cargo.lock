@@ -1579,6 +1579,7 @@ dependencies = [
  "data-encoding",
  "hex",
  "log",
+ "rand 0.8.4",
  "reqwest",
  "ring",
  "rustc-serialize",

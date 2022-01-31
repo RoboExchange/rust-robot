@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha256::digest;
 
-use crate::env::{get_access_id, get_initial_balance, get_leverage, get_position_type, get_secret_key, get_tpp};
+use crate::env::{coinbase_access_id, initial_balance, leverage, position_type, coinbase_secret_key, tpp};
 use crate::utils;
 use crate::utils::{get_target_price, validate_url};
 
@@ -102,10 +102,10 @@ pub struct ApiResponse {
 impl AdjustLeverage {
     #[allow(dead_code)]
     pub fn new(market: &str) -> Self {
-        let position_type = get_position_type();
+        let position_type = position_type();
         return AdjustLeverage {
             _market: market.into(),
-            _leverage: get_leverage(),
+            _leverage: leverage(),
             _position_type: position_type,
             _timestamp: utils::get_current_timestamp(),
         };
@@ -130,8 +130,8 @@ impl AdjustLeverage {
 impl PutLimitRequest {
     #[allow(dead_code)]
     pub fn new(market: &str, operation: &str, price: &f32) -> Self {
-        let amount = get_initial_balance() as f32 * get_leverage() as f32 / price;
-        let target_price = get_target_price(&operation, price, &get_tpp());
+        let amount = initial_balance() as f32 * leverage() as f32 / price;
+        let target_price = get_target_price(&operation, price, &tpp());
         info!("PutLimit -> market:{}  side:{}  price:{}  amount:{}", &market, &operation, &price, &amount);
         PutLimitRequest {
             _market: market.into(),
@@ -159,7 +159,7 @@ impl PutLimitRequest {
 impl CloseLimitRequest {
     #[allow(dead_code)]
     pub fn new(market: &str, side: &str, position_id: &f64, price: &f32, amount: &f32) -> Self {
-        let target_price = get_target_price(side, price, &get_tpp());
+        let target_price = get_target_price(side, price, &tpp());
         info!("CloseLimit -> market:{}  position_id:{}  price:{}  amount:{}", market, position_id, price, amount);
         CloseLimitRequest {
             _market: market.into(),
@@ -290,19 +290,19 @@ impl OrderStatusRequest {
 
 
 fn call_api(params_url_encoded: String, target_path: String, method: &str) -> Result<ApiResponse, u16> {
-    let full_params = format!("{}&secret_key={}", params_url_encoded, get_secret_key());
+    let full_params = format!("{}&secret_key={}", params_url_encoded, coinbase_secret_key());
 
     trace!("Clear: {}", &full_params);
     let sign = digest(&full_params).to_lowercase();
     trace!("Sign: {}", &sign);
 
-    let url = validate_url(target_path);
+    let url = validate_url(&target_path);
 
     trace!("URL: {}", url);
 
     let mut headers = HeaderMap::new();
     headers.insert(CONTENT_TYPE, "application/x-www-form-urlencoded".parse().unwrap());
-    headers.insert("AccessId", get_access_id().parse().unwrap());
+    headers.insert("AccessId", coinbase_access_id().parse().unwrap());
     headers.insert("Authorization", sign.parse().unwrap());
 
     let http_client = reqwest::blocking::Client::builder().use_rustls_tls().build().unwrap();

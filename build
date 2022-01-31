@@ -1,0 +1,14 @@
+#!/bin/bash 
+
+BINARY_PATH="target/release/rust-robot"
+
+cargo build --release 
+
+if [ $? != 0 ]; then 
+                echo "Compile Error" 
+                exit 1
+fi
+
+strip $BINARY_PATH
+cp $BINARY_PATH docker
+

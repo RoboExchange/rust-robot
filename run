@@ -1,0 +1,8 @@
+#!/bin/bash 
+
+export BASE_URL=https://api-testnet.bybit.com
+export BYBIT_API_KEY=G5QoXt74YTOXnVrH76
+export BYBIT_API_SECRET=5aqOuGL7H2cw0VNPem5Ww4XU7BqgY8yGUd6K
+
+
+cargo run

@@ -1,55 +1,59 @@
-use log::{error, info, warn};
+use log::{debug, info};
 
-#[allow(dead_code)]
-use crate::coinex::{AdjustLeverage, PendingPositionRequest, PutLimitRequest, TickerRequest};
-use crate::coinex::{CloseLimitRequest, OrderStatusRequest};
-use crate::env::get_concurrent_position;
+use crate::exchange::bybit::Market;
+use crate::exchange::general::MarketApi;
+use crate::exchange::structs::{Order, OrderSide, OrderType, TimeInForce};
 
-pub fn execute_coinex(market: &str, operation: &str) {
+pub fn trade(symbol: String, side: OrderSide, price: f64, take_profit: f64, stop_loss: f64, leverage: i32) {
+    let coin = String::from("USDT");
+    let available_balance = Market::wallet_available_balance(coin);
+    let is_in_position = Market::is_in_position(&symbol);
+    info!("Available balance USDT:{}",available_balance);
 
-    info!("Execute Signal: market:{} side:{}", market, operation);
-    let mut pp_resp = PendingPositionRequest::new_with_market(Option::from(market)).send();
+    if available_balance > 10.0 && !is_in_position {
+        info!("Switch to Isolated");
+        let isolated_changed = Market::switch_isolated(&symbol, true, leverage);
 
-    match pp_resp {
-        Ok(resp) => {
-            if resp.data.is_array() && !resp.data.as_array().unwrap().is_empty() {
-                println!("Previous position not closed yet market:{}", &market);
-            } else {
-                pp_resp = PendingPositionRequest::new().send();
-                match pp_resp {
-                    Ok(resp) => {
-                        let concurrent_position = get_concurrent_position();
-                        let arr_len = resp.data.as_array().unwrap().len();
-                        if arr_len < concurrent_position as usize {
-                            let adj_lev_resp = AdjustLeverage::new(&market).send().unwrap();
-                            info!("Leverage -> {} leverage:{} position_type:{}", &market, adj_lev_resp.data["leverage"].as_str().unwrap(), adj_lev_resp.data["position_type"]);
-                            let ticker_resp = TickerRequest::new(&market).send().unwrap();
-                            let last_price = &ticker_resp.data["ticker"]["last"].as_str().unwrap().parse::<f32>().unwrap();
-                            let put_limit_resp = PutLimitRequest::new(&market, &operation, &last_price).send().unwrap();
-                            let order_id = put_limit_resp.data["order_id"].as_f64().unwrap();
-                            if put_limit_resp.code.eq(&0) {
-                                let current_pos = PendingPositionRequest::new_with_market(Option::from(market)).send().unwrap();
-                                let position_id = current_pos.data.get(0).unwrap()["position_id"].as_f64().unwrap();
+        info!("Change Leverage");
+        let leverage_changed = Market::leverage(&symbol, leverage);
 
-                                let order_status = OrderStatusRequest::new(&market, &order_id).send().unwrap();
-                                let status = order_status.data["status"].as_str().unwrap();
-                                let amount = order_status.data["amount"].as_str().unwrap().parse::<f32>().unwrap();
-                                let price = order_status.data["price"].as_str().unwrap().parse::<f32>().unwrap();
-                                info!("Enter Position -> market:{} id:{} positionId:{} status:{} amount:{} price:{} {}/{}", &market, &order_id, &position_id, status, amount, price, arr_len + 1, concurrent_position);
+        if isolated_changed && leverage_changed {
+            let base = available_balance * leverage as f64 / price;
+            let qty = format!("{:.4}", base).parse::<f64>().unwrap();
+            println!("Order size:{}", qty);
 
-                                let take_profit_resp = CloseLimitRequest::new(&market, &operation, &position_id, &last_price, &amount).send().unwrap();
-                                if take_profit_resp.code.eq(&0) {
-                                    info!("TakeProfit -> market:{} id:{} amount:{} price:{}", &market, &order_id, amount, price);
-                                } else {
-                                    warn!("TakeProfit market:{} code:{} message:{}", &market, take_profit_resp.code, take_profit_resp.message);
-                                }
-                            }
-                        }
-                    }
-                    _ => {}
+            let order = Order {
+                symbol: symbol.to_string(),
+                time_in_force: TimeInForce::GoodTillCancel,
+                price: 0.0,
+                qty,
+                reduce_only: Some(false),
+                close_on_trigger: Some(false),
+                order_type: OrderType::Market,
+                leverage: Some(20),
+                side,
+                take_profit: None,
+                stop_loss: None,
+            };
+
+            info!("Send order symbol:{} tpp:{} slp:{}",&symbol,&take_profit,&stop_loss);
+            if Market::order(order) {
+                info!("Get position information symbol:{}",&symbol);
+                let pi = Market::position(&symbol).unwrap();
+                if &pi.entry_price > &0.0 {
+                    let size = Option::Some(pi.size);
+
+                    info!("Set stop loss symbol:{} side:{}",&symbol,&side);
+                    Market::stop_loss(&symbol, size, &side, Option::None, Option::Some(stop_loss));
+
+                    info!("Set take profit symbol:{} qty:{}",&symbol,size.unwrap());
+                    Market::take_profit(&symbol, size, &side, Option::Some(take_profit), Option::None);
                 }
+            } else {
+                debug!("Market Order not completed")
             }
+        } else {
+            debug!("Switch isolated or change leverage not completed")
         }
-        Err(err) => { error!("Error: {}", err); }
     }
 }
