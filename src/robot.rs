@@ -1,21 +1,22 @@
 use log::{debug, info};
+use serde_json::Value;
 
 use crate::exchange::bybit::Market;
 use crate::exchange::general::MarketApi;
 use crate::exchange::structs::{Order, OrderSide, OrderType, TimeInForce};
 
-pub fn trade(symbol: String, side: OrderSide, price: f64, take_profit: f64, stop_loss: f64, leverage: i32) {
+pub fn trade(symbol: String, side: OrderSide, price: f64, take_profit: f64, stop_loss: f64, leverage: i32, metadata: Value) {
     let coin = String::from("USDT");
-    let available_balance = Market::wallet_available_balance(coin);
-    let is_in_position = Market::is_in_position(&symbol);
+    let available_balance = Market::wallet_available_balance(coin, &metadata);
+    let is_in_position = Market::is_in_position(&symbol, &metadata);
     info!("Available balance USDT:{}",available_balance);
 
     if available_balance > 10.0 && !is_in_position {
         info!("Switch to Isolated");
-        let isolated_changed = Market::switch_isolated(&symbol, true, leverage);
+        let isolated_changed = Market::switch_isolated(&symbol, true, leverage, &metadata);
 
         info!("Change Leverage");
-        let leverage_changed = Market::leverage(&symbol, leverage);
+        let leverage_changed = Market::leverage(&symbol, leverage, &metadata);
 
         if isolated_changed && leverage_changed {
             let base = available_balance * leverage as f64 / price;
@@ -37,17 +38,17 @@ pub fn trade(symbol: String, side: OrderSide, price: f64, take_profit: f64, stop
             };
 
             info!("Send order symbol:{} tpp:{} slp:{}",&symbol,&take_profit,&stop_loss);
-            if Market::order(order) {
+            if Market::order(order, &metadata) {
                 info!("Get position information symbol:{}",&symbol);
-                let pi = Market::position(&symbol).unwrap();
+                let pi = Market::position(&symbol, &metadata).unwrap();
                 if &pi.entry_price > &0.0 {
                     let size = Option::Some(pi.size);
 
                     info!("Set stop loss symbol:{} side:{}",&symbol,&side);
-                    Market::stop_loss(&symbol, size, &side, Option::None, Option::Some(stop_loss));
+                    Market::stop_loss(&symbol, size, &side, Option::None, Option::Some(stop_loss), &metadata);
 
                     info!("Set take profit symbol:{} qty:{}",&symbol,size.unwrap());
-                    Market::take_profit(&symbol, size, &side, Option::Some(take_profit), Option::None);
+                    Market::take_profit(&symbol, size, &side, Option::Some(take_profit), Option::None, &metadata);
                 }
             } else {
                 debug!("Market Order not completed")

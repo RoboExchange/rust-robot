@@ -4,7 +4,6 @@ use std::fmt::Formatter;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::common::environments::bybit_api_key;
 use crate::common::utils::get_current_timestamp;
 use crate::exchange::structs::{Order, OrderSide, OrderType, PositionInformation, TimeInForce};
 
@@ -138,10 +137,9 @@ impl OrderRequest {
         }
     }
 
-    pub fn get_query_map(&self) -> HashMap<String, Value> {
+    pub fn get_query_map(&self, api_key: String) -> HashMap<String, Value> {
         //Initial data
         let timestamp = get_current_timestamp();
-        let api_key = bybit_api_key();
         let mut query_map = HashMap::<String, Value>::new();
         query_map.insert(String::from("api_key"), Value::from(api_key));
         query_map.insert(String::from("timestamp"), Value::from(timestamp.to_string()));
@@ -176,10 +174,9 @@ impl PositionRequest {
         PositionRequest { _symbol: symbol.to_string() }
     }
 
-    pub fn get_query_map(&self) -> HashMap<String, Value> {
+    pub fn get_query_map(&self, api_key: String) -> HashMap<String, Value> {
         //Initial data
         let timestamp = get_current_timestamp();
-        let api_key = bybit_api_key();
         let symbol = &self._symbol;
         let mut query_map = HashMap::new();
         query_map.insert(String::from("api_key"), Value::from(api_key));
@@ -194,10 +191,9 @@ impl WalletInformation {
         WalletInformation { _coin: coin.to_string() }
     }
 
-    pub fn get_query_map(&self) -> HashMap<String, Value> {
+    pub fn get_query_map(&self, api_key: String) -> HashMap<String, Value> {
         //Initial data
         let timestamp = get_current_timestamp();
-        let api_key = bybit_api_key();
         let coin = &self._coin;
         let mut query_map = HashMap::new();
         query_map.insert(String::from("api_key"), Value::from(api_key));
@@ -217,10 +213,9 @@ impl SwitchIsolatedRequest {
         }
     }
 
-    pub fn get_query_map(&self) -> HashMap<String, Value> {
+    pub fn get_query_map(&self, api_key: String) -> HashMap<String, Value> {
         //Initial data
         let timestamp = get_current_timestamp();
-        let api_key = bybit_api_key();
         let mut query_map = HashMap::new();
         query_map.insert(String::from("api_key"), Value::from(api_key));
         query_map.insert(String::from("timestamp"), Value::from(timestamp.to_string()));
@@ -241,10 +236,9 @@ impl LeverageRequest {
         }
     }
 
-    pub fn get_query_map(&self) -> HashMap<String, Value> {
+    pub fn get_query_map(&self, api_key: String) -> HashMap<String, Value> {
         //Initial data
         let timestamp = get_current_timestamp();
-        let api_key = bybit_api_key();
         let mut query_map = HashMap::new();
         query_map.insert(String::from("api_key"), Value::from(api_key));
         query_map.insert(String::from("timestamp"), Value::from(timestamp.to_string()));
@@ -282,10 +276,9 @@ impl TradingStop {
         }
     }
 
-    pub fn get_query_map(&self) -> HashMap<String, Value> {
+    pub fn get_query_map(&self, api_key: String) -> HashMap<String, Value> {
         //Initial data
         let timestamp = get_current_timestamp();
-        let api_key = bybit_api_key();
         let mut query_map = HashMap::new();
         query_map.insert(String::from("api_key"), Value::from(api_key));
         query_map.insert(String::from("timestamp"), Value::from(timestamp.to_string()));
